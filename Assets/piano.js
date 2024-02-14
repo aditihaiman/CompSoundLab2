@@ -34,6 +34,9 @@ document.addEventListener("DOMContentLoaded", function (event) {
         '85': 987.766602512248223,  //U - B
     };
 
+    let activeOscillators = {};
+
+
     const globalGain = audioCtx.createGain(); //this will control the volume of all notes
     globalGain.gain.setValueAtTime(0.5, audioCtx.currentTime);
     globalGain.connect(audioCtx.destination);
@@ -54,7 +57,6 @@ document.addEventListener("DOMContentLoaded", function (event) {
     
 
 
-    activeOscillators = {};
 
     gainNodes = {};
 
