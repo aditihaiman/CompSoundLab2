@@ -1,20 +1,107 @@
 <html>
-<head>
-    <script src="https://cdn.ctat.cs.cmu.edu/releases/latest/jquery.min.js"></script>
 
-    <script src='http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.5/jquery-ui.min.js'></script>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        crossorigin="anonymous">
+    <script src="http://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.0/jquery-ui.min.js"></script>
+    <link rel="stylesheet" href="http://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
 
     <script src="Assets/piano.js"></script>
-    
+
+    <style>
+        #controls{
+            background-color: white;
+
+        }
+        .highlight{
+            background-color: lightyellow;
+        }
+        #fun{
+            height: 45%;
+        }
+    </style>
+
 </head>
 
 <body>
-    <label for="wave_type">Wave Type:</label>
-    <select id="wave_type">
-        <option value="sine">sine</option>
-        <option value="sawtooth">sawtooth</option>
-        <option value="square">square</option>
-        <option value="triangle">triangle</option>
-    </select>
+    <div class="container-fluid">
+        <div class="col-lg-4 d-inline-block p-3" id="controls">
+            <div class="row p-3 border">
+                <div class="col">
+                    <label for="wave_type">Wave Type:</label>
+                    <select id="wave_type">
+                        <option value="sine">sine</option>
+                        <option value="sawtooth">sawtooth</option>
+                        <option value="square">square</option>
+                        <option value="triangle">triangle</option>
+                    </select>
+                </div>
+                <div class="col">
+
+                    <label for="synth_type">Synth Type:</label>
+                    <select id="synth_type">
+                        <option value="additive">Additive</option>
+                        <option value="AM">AM</option>
+                        <option value="FM">FM</option>
+                    </select>
+                </div>
+            </div>
+            <div class="row p-3 border" id="LFO_row">
+                <div class="col-5">
+                    <input type="checkbox" id="LFO" />
+                    <label for="LFO">LFO</label>
+                </div>
+                <div class="col-7">
+                    <div>
+                        <input type="range" min="1" max="20" value="4" id="LFO_freq">
+                        <label for="LFO_freq">LFO Frequency</label>
+                    </div>
+
+                    <div>
+                        <input type="range" min="1" max="100" value="4" id="LFO_gain">
+                        <label for="LFO_gain">LFO Gain</label>
+                    </div>
+                </div>
+            </div>
+            <div class="row p-3 border highlight" id="additive_row">
+                <div>
+                    <input type="range" min="1" max="5" step="1" value="3" id="num_partials">
+                    <label for="num_partials">Number of Partials</label>
+                </div>
+                <div>
+                    <input type="range" min="1" max="200" value="10" id="additive_random">
+                    <label for="additive_random">Additive Randomness</label>
+                </div>
+            </div>
+            <div class="row p-3 border" id="AMFM_row">
+                <div>
+                    <input type="range" min="1" max="1000" value="100" id="mod_freq">
+                    <label for="mod_freq">Modulator Frequency</label>
+                </div>
+            
+                <div>
+                    <input type="range" min="1" max="1000" value="100" id="index_mod">
+                    <label for="index_mod">Index of Modulation</label>
+                </div>
+            </div>
+            <div class="row p-3 border" id="ADSR_row">
+                <div>
+                    Enveloping
+                </div>
+                <div>
+                    <input type="range" min="0.01" max="1" step="0.01" value="0.01" id="attack">
+                    <label for="attack">Attack</label>
+                </div>
+                <div>
+                    <input type="range" min="0.1" max="1" step="0.1" value="0.5" id="release">
+                    <label for="release">Release</label>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </body>
+
 </html>

@@ -1,13 +1,14 @@
 
 document.addEventListener("DOMContentLoaded", function (event) {
 
-    
+
 
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
     let num_osc = 0;
+    let attackTime = 0.01;
+    let releaseTime = 0.5;
 
-    // audioCtx.resume();
 
     const globalGain = audioCtx.createGain(); //this will control the volume of all notes
     globalGain.gain.setValueAtTime(0.5, audioCtx.currentTime);
@@ -20,6 +21,10 @@ document.addEventListener("DOMContentLoaded", function (event) {
 
     window.addEventListener('keydown', keyDown, false);
     window.addEventListener('keyup', keyUp, false);
+    $("#synth_type").on('change', selection);
+    $("#LFO").on('change', LFO_select);
+    $("#attack").on('change', update_attack);
+    $("#release").on('change', update_release);
 
 
     const keyboardFrequencyMap = {
@@ -49,9 +54,6 @@ document.addEventListener("DOMContentLoaded", function (event) {
         '85': 987.766602512248223,  //U - B
     };
 
-    const birds = {};
-
-    setup_birds();
 
     activeOscillators = {};
 
@@ -59,23 +61,33 @@ document.addEventListener("DOMContentLoaded", function (event) {
 
 
     function keyDown(event) {
+        synth_type = $("#synth_type").val();
         const key = (event.detail || event.which).toString();
         draw();
         if (keyboardFrequencyMap[key] && !activeOscillators[key]) {
             num_osc += 1;
-            playNote(key);
-            show_bird(key);
+            if (synth_type == 'additive') additive(key);
+            else if(synth_type == "AM") AM(key);
+            else FM(key);
+
+            if($("#LFO").is(":checked")){
+                LFO(key);
+            }
         }
     }
 
     function keyUp(event) {
         const key = (event.detail || event.which).toString();
-        
+
         if (keyboardFrequencyMap[key] && activeOscillators[key]) {
-            activeOscillators[key].gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime+0.5);
-            activeOscillators[key].stop(audioCtx.currentTime+0.5);
+            for (let osc of activeOscillators[key]) {
+                // console.log(osc);
+                osc.gainNode.gain.setValueAtTime(osc.gainNode.gain.value, audioCtx.currentTime);
+                osc.gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + releaseTime);
+                osc.stop(audioCtx.currentTime + releaseTime);
+            }
+
             delete activeOscillators[key];
-            // delete gainNodes[key];
             num_osc -= 1;
         }
     }
@@ -92,7 +104,7 @@ document.addEventListener("DOMContentLoaded", function (event) {
         osc.type = wavetype; //choose your favorite waveform
 
         osc_gain_node.gain.setValueAtTime(0, audioCtx.currentTime);
-        osc_gain_node.gain.exponentialRampToValueAtTime(0.5/num_osc, audioCtx.currentTime+0.01);
+        osc_gain_node.gain.exponentialRampToValueAtTime(0.5 / num_osc, audioCtx.currentTime + 0.01);
 
         osc.start();
         activeOscillators[key] = osc;
@@ -100,7 +112,130 @@ document.addEventListener("DOMContentLoaded", function (event) {
         // console.log(gainNodes);
     }
 
+
+    function additive(key) {
+        let wavetype = $("#wave_type").val();
+        const now = audioCtx.currentTime;
+        let num_partials = $("#num_partials").val();
+        
+        console.log('additive');
+        
+        let oscs = []
+        // const osc = audioCtx.createOscillator();
+        // const osc1 = audioCtx.createOscillator();
+        // const osc2 = audioCtx.createOscillator();
+        // const osc3 = audioCtx.createOscillator();
+
+        // let oscs = [osc, osc1, osc2, osc3];
+        for(let i = 0; i < num_partials; i++){
+            oscs.push(audioCtx.createOscillator());
+        }
+        
+        for(let i = 0; i < oscs.length; i++){
+            oscs[i].type = wavetype;
+            oscs[i].frequency.value = keyboardFrequencyMap[key] * (i+1);
+            if(i > 0) oscs[i].frequency.value += Math.random() * $("#additive_random").val();
+
+            let osc_gain = audioCtx.createGain();
+            oscs[i].gainNode = osc_gain;
+            oscs[i].connect(osc_gain);
+            osc_gain.connect(globalGain);
+            oscs[i].start()
+
+            osc_gain.gain.setValueAtTime(0, now);
+            console.log(attackTime);
+            osc_gain.gain.linearRampToValueAtTime(0.2 / num_osc, now + attackTime);
+        }
+
+        activeOscillators[key] = oscs;
+    }
+
+    function AM(key){
+        let carrier = audioCtx.createOscillator();
+        let modulatorFreq = audioCtx.createOscillator();
+        modulatorFreq.frequency.value = $("#mod_freq").val();
+        carrier.frequency.value = keyboardFrequencyMap[key];
     
+        const modulated = audioCtx.createGain();
+        const depth = audioCtx.createGain();
+        depth.gain.value = 0.25 / num_osc //scale modulator output to [-0.5, 0.5]
+        modulated.gain.value = 0.5 / num_osc - depth.gain.value; //a fixed value of 0.5
+        carrier.gainNode = modulated;
+        modulatorFreq.gainNode = depth;
+    
+        modulatorFreq.connect(depth).connect(modulated.gain); //.connect is additive, so with [-0.5,0.5] and 0.5, the modulated signal now has output gain at [0,1]
+        carrier.connect(modulated)
+        modulated.connect(globalGain);
+        
+        carrier.start();
+        modulatorFreq.start();
+
+        activeOscillators[key] = [modulatorFreq, carrier];
+    }
+
+    function FM(key){
+        let carrier = audioCtx.createOscillator();
+        let modulatorFreq = audioCtx.createOscillator();
+    
+        let modulationIndex = audioCtx.createGain();
+        let carrier_gain = audioCtx.createGain();
+        carrier_gain.gain.value = 0.5/num_osc;
+        modulationIndex.gain.value = $("#index_mod").val();
+        modulatorFreq.frequency.value = $("#mod_freq").val()
+        carrier.frequency.value = keyboardFrequencyMap[key];
+    
+        modulatorFreq.connect(modulationIndex);
+        modulationIndex.connect(carrier.frequency)
+        
+        carrier.connect(carrier_gain);
+        carrier_gain.connect(globalGain);
+        carrier.gainNode = carrier_gain;
+        modulatorFreq.gainNode = modulationIndex;
+    
+        carrier.start();
+        modulatorFreq.start();
+
+        activeOscillators[key] = [modulatorFreq, carrier];
+    }
+
+    function LFO(key){
+        let lfo = audioCtx.createOscillator();
+        lfo.frequency.value = $("#LFO_freq").val();
+        lfoGain = audioCtx.createGain();
+        lfoGain.gain.value = $("#LFO_gain").val();
+        lfo.connect(lfoGain).connect(activeOscillators[key][0].frequency);
+        lfo.start();
+
+        lfo.gainNode = lfoGain;
+        activeOscillators[key].push(lfo);
+    }
+    
+    function selection(){
+        if($("#synth_type").val() == 'additive'){
+            $("#AMFM_row").removeClass('highlight');
+            $("#additive_row").addClass('highlight');
+        }
+        else{
+            $("#AMFM_row").addClass('highlight');
+            $("#additive_row").removeClass('highlight');
+        }
+    }
+
+    function LFO_select(){
+        if($("#LFO").is(':checked')){
+            $("#LFO_row").addClass('highlight');
+        }
+        else $("#LFO_row").removeClass('highlight');
+    }
+
+    function update_attack(){
+        attackTime = Number($("#attack").val());
+    }
+
+    function update_release(){
+        releaseTime = Number($("#release").val());
+    }
+
     function draw() {
         globalAnalyser.fftSize = 2048;
         var bufferLength = globalAnalyser.frequencyBinCount;
@@ -114,61 +249,9 @@ document.addEventListener("DOMContentLoaded", function (event) {
             maxAlltime = maxValue;
             console.log("New record! -> " + maxAlltime);
         }
-        
+
         requestAnimationFrame(draw);
 
-    }
-
-    function setup_birds(){
-
-        let idx = 1;
-        for (let key of Object.keys(keyboardFrequencyMap)){
-            let bird = document.createElement('div');
-            document.body.appendChild(bird);
-            bird.id = "bird" + idx;
-
-            let top = Math.floor((Math.random() * ($(window).height()/2)) + 1);
-            let left = Math.floor((Math.random() * ($(window).width()/2)) + 1);
-
-            $("#bird"+idx).css({
-                'position': 'absolute',
-                'top': top,
-                'left': left,
-                "background-image": 'url(\"./Assets/Birb/birb' + idx + '.png\")',
-                'width': '100px',
-                'height': '100px',
-                'background-size': 'contain',
-                'background-repeat': 'no-repeat',
-                'opacity': 0
-            });
-
-            birds[key] = bird;
-            idx+=1;
-        }
-        // console.log(birds);
-    }
-
-    function show_bird(key){
-        let bird = birds[key].id;
-
-        let top = Math.floor((Math.random() * ($(window).height()/2)) + 1);
-        let left = Math.floor((Math.random() * ($(window).width()/2)) + 1);
-
-
-        $("#" + bird).css({
-            "top": top,
-            "left": left,
-            'opacity': 1
-        });
-
-        $("#" + bird).animate({'opacity': 0}, {
-            duration: 3000,
-            complete: function () {
-                $("#" + bird).css({
-                    'opacity': 0
-                });
-            }
-        });
     }
 
 
