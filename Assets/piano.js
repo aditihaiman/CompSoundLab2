@@ -1,14 +1,13 @@
 
 document.addEventListener("DOMContentLoaded", function (event) {
 
-
-
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
     let num_osc = 0;
     let attackTime = 0.01;
     let releaseTime = 0.5;
 
+    
 
     const globalGain = audioCtx.createGain(); //this will control the volume of all notes
     globalGain.gain.setValueAtTime(0.5, audioCtx.currentTime);
@@ -64,6 +63,16 @@ document.addEventListener("DOMContentLoaded", function (event) {
         synth_type = $("#synth_type").val();
         const key = (event.detail || event.which).toString();
         draw();
+
+        //image filters
+        let filter = 'hue-rotate(' + $("#mod_freq").val() + 'deg)' + 
+                        'invert(' + $("#attack").val() + ')' + 
+                        'contrast(' + $("#num_partials").val() + ')' + 
+                        'sepia(' + $("#release").val() + ')' +
+                        'saturate(' + $("#LFO_freq").val() + ')';
+
+        $("#jumble").css({filter: filter});
+
         if (keyboardFrequencyMap[key] && !activeOscillators[key]) {
             num_osc += 1;
             if (synth_type == 'additive') additive(key);
@@ -121,12 +130,6 @@ document.addEventListener("DOMContentLoaded", function (event) {
         console.log('additive');
         
         let oscs = []
-        // const osc = audioCtx.createOscillator();
-        // const osc1 = audioCtx.createOscillator();
-        // const osc2 = audioCtx.createOscillator();
-        // const osc3 = audioCtx.createOscillator();
-
-        // let oscs = [osc, osc1, osc2, osc3];
         for(let i = 0; i < num_partials; i++){
             oscs.push(audioCtx.createOscillator());
         }
@@ -151,7 +154,9 @@ document.addEventListener("DOMContentLoaded", function (event) {
     }
 
     function AM(key){
+        let wavetype = $("#wave_type").val();
         let carrier = audioCtx.createOscillator();
+        carrier.type = wavetype;
         let modulatorFreq = audioCtx.createOscillator();
         modulatorFreq.frequency.value = $("#mod_freq").val();
         carrier.frequency.value = keyboardFrequencyMap[key];
@@ -174,7 +179,9 @@ document.addEventListener("DOMContentLoaded", function (event) {
     }
 
     function FM(key){
+        let wavetype = $("#wave_type").val();
         let carrier = audioCtx.createOscillator();
+        carrier.type = wavetype;
         let modulatorFreq = audioCtx.createOscillator();
     
         let modulationIndex = audioCtx.createGain();
@@ -224,8 +231,12 @@ document.addEventListener("DOMContentLoaded", function (event) {
     function LFO_select(){
         if($("#LFO").is(':checked')){
             $("#LFO_row").addClass('highlight');
+            $("#jumble").addClass('invert-color')
         }
-        else $("#LFO_row").removeClass('highlight');
+        else {
+            $("#LFO_row").removeClass('highlight');
+            $("#jumble").removeClass('invert-color')
+        }
     }
 
     function update_attack(){
