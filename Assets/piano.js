@@ -7,25 +7,6 @@ document.addEventListener("DOMContentLoaded", function (event) {
     let attackTime = 0.01;
     let releaseTime = 0.5;
 
-    
-
-    const globalGain = audioCtx.createGain(); //this will control the volume of all notes
-    globalGain.gain.setValueAtTime(0.5, audioCtx.currentTime);
-    globalGain.connect(audioCtx.destination);
-
-    globalAnalyser = audioCtx.createAnalyser();
-    globalAnalyser.connect(audioCtx.destination);
-    globalGain.connect(globalAnalyser);
-    let maxAlltime = 0
-
-    window.addEventListener('keydown', keyDown, false);
-    window.addEventListener('keyup', keyUp, false);
-    $("#synth_type").on('change', selection);
-    $("#LFO").on('change', LFO_select);
-    $("#attack").on('change', update_attack);
-    $("#release").on('change', update_release);
-
-
     const keyboardFrequencyMap = {
         '90': 261.625565300598634,  //Z - C
         '83': 277.182630976872096, //S - C#
@@ -52,6 +33,25 @@ document.addEventListener("DOMContentLoaded", function (event) {
         '55': 932.327523036179832, //7 - A#
         '85': 987.766602512248223,  //U - B
     };
+
+    const globalGain = audioCtx.createGain(); //this will control the volume of all notes
+    globalGain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+    globalGain.connect(audioCtx.destination);
+
+    globalAnalyser = audioCtx.createAnalyser();
+    globalAnalyser.connect(audioCtx.destination);
+    globalGain.connect(globalAnalyser);
+    let maxAlltime = 0
+
+    window.addEventListener('keydown', keyDown, false);
+    window.addEventListener('keyup', keyUp, false);
+    $("#synth_type").on('change', selection);
+    $("#LFO").on('change', LFO_select);
+    $("#attack").on('change', update_attack);
+    $("#release").on('change', update_release);
+
+
+    
 
 
     activeOscillators = {};
